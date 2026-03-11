@@ -1,57 +1,79 @@
-import click
 import requests
-import pprint
 import os
+from dotenv import load_dotenv
 
-@click.command(help = 'Ferramenta de linha de comando para consultar previsão do tempo.')
+load_dotenv()
+
+
+def limpar_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def clima():
+
     api_key = os.getenv("KEY")
 
-    while True:
-        city= click.prompt('digite uma cidade ', type= str)
-        days = click.prompt('Você quer saber a previsão de quantos dias ', type= click.IntRange(1, 3))
+    if not api_key:
+        print("API KEY não encontrada no arquivo .env")
+        return
 
-        parametros={
-            'key':api_key,
-            'q':city,
-            'days':days,
+    while True:
+
+        city = input("Digite uma cidade: ")
+
+        try:
+            days = int(input("Você quer saber a previsão de quantos dias (1-3): "))
+            if days < 1 or days > 3:
+                print("Digite um número entre 1 e 3.")
+                continue
+        except ValueError:
+            print("Digite um número válido.")
+            continue
+
+        parametros = {
+            'key': api_key,
+            'q': city,
+            'days': days,
             'lang': 'pt'
         }
 
-       
-        forecast = 'http://api.weatherapi.com/v1/forecast.json'
-    
-        previsao = requests.get(forecast, params=parametros)
+        forecast = 'https://api.weatherapi.com/v1/forecast.json'
+
+        try:
+            previsao = requests.get(forecast, params=parametros, timeout=10)
+        except requests.exceptions.RequestException:
+            print("Erro ao conectar com a API.")
+            continue
 
         if previsao.status_code == 200:
-           
-            dados_previsao = previsao.json()
 
-            lista_dias = dados_previsao['forecast'] ['forecastday']
+            dados_previsao = previsao.json()
+            lista_dias = dados_previsao['forecast']['forecastday']
 
             for i in range(days):
-                click.echo('-=' * 25)
 
-                click.echo(f"Cidade: {dados_previsao['location']['name']}")
-                click.echo(f"Data: {lista_dias[i]['date']}")
-                click.echo(f"Clima: {lista_dias[i]['day']['condition']['text']}")
-                click.echo(f"Temperatura maxima: {lista_dias[i]['day']['maxtemp_c']}°C")
-                click.echo(f"Temperatura minima: {lista_dias[i]['day']['mintemp_c']}°C")
-                click.echo(f"Chance de chuva: {lista_dias[i]['day']['daily_chance_of_rain']}%")
+                print('-=' * 25)
 
-                click.echo('-=' * 25)
+                print(f"Cidade: {dados_previsao['location']['name']}")
+                print(f"Data: {lista_dias[i]['date']}")
+                print(f"Clima: {lista_dias[i]['day']['condition']['text']}")
+                print(f"Temperatura máxima: {lista_dias[i]['day']['maxtemp_c']}°C")
+                print(f"Temperatura mínima: {lista_dias[i]['day']['mintemp_c']}°C")
+                print(f"Chance de chuva: {lista_dias[i]['day']['daily_chance_of_rain']}%")
+
+                print('-=' * 25)
+
         else:
-            click.echo("Erro ao buscar previsão.")
+            print("Erro ao buscar previsão.")
+            print(previsao.text)
 
-        d= click.prompt('pressione (f) para terminar. Aperte qualquer coisa para continuar ', type= str)
-        if d == 'f':
+        d = input("Pressione (f) para terminar ou qualquer tecla para continuar: ")
+
+        if d.lower() == 'f':
             break
         else:
-            if os.name == 'nt':
-                os.system('cls')
-                
-            else:
-                os.system('clear')
+            limpar_terminal()
+
 
 if __name__ == "__main__":
     clima()
